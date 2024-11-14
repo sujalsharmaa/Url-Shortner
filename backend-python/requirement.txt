@@ -1,0 +1,6 @@
+Flask
+SQLAlchemy
+psycopg2-binary
+redis
+prometheus-client
+python-dotenv
