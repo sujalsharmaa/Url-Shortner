@@ -27,7 +27,9 @@ const useStore = create((set) => ({
 
   login: async (username, password, router) => {
     try {
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
+      const url = `${process.env.NEXT_PUBLIC_API_URL}/auth/login`
+      console.log(url)
+      const response = await axios.post( `${url}` , { 
         username,
         password,
       });
