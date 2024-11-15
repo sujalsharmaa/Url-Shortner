@@ -3,7 +3,7 @@ FROM python:3.9-slim AS builder
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY requirement.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Stage 2: Copy the application code and set up the runtime environment
