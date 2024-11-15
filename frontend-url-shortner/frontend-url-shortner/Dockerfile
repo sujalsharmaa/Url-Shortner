@@ -14,17 +14,20 @@ COPY . .
 # Build the app
 RUN npm run build
 
-# Stage 2: Serve the app with NGINX
-FROM nginx:alpine
+# Stage 2: Serve the app with Node.js
+FROM node:18
+
+# Set working directory
+WORKDIR /app
 
 # Copy the build output from the previous stage
-COPY --from=build /app/.next/server/app /usr/share/nginx/html
+COPY --from=build /app/ ./
 
-# Copy custom nginx.conf
-COPY nginx.conf /etc/nginx/nginx.conf
+# Install production dependencies (if not already installed)
+RUN npm install --production
 
-# Expose the default NGINX port
-EXPOSE 80
+# Expose the default Next.js port
+EXPOSE 3001
 
-# Start NGINX
-CMD ["nginx", "-g", "daemon off;"]
+# Start the Next.js app in production mode
+CMD ["npm", "start"]
