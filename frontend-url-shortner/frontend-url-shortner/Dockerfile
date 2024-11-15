@@ -26,8 +26,8 @@ COPY --from=build /app/ ./
 # Install production dependencies (if not already installed)
 RUN npm install --production
 
-# Expose the default Next.js port
+# Expose the desired port (3001)
 EXPOSE 3001
 
-# Start the Next.js app in production mode
-CMD ["npm", "start"]
+# Start the Next.js app in production mode on port 3001
+CMD ["npm", "run", "start", "--", "-p", "3001"]
