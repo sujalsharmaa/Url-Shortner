@@ -1,34 +1,26 @@
-# Stage 1: Build the Next.js application
+# Builder stage
 FROM node:18-alpine AS builder
-
-# Set the working directory
 WORKDIR /app
-
-# Copy package files and install dependencies
 COPY package.json package-lock.json ./
 RUN npm install
-
-# Copy the entire application code
 COPY . .
 
-# Build the application for production
+# Build the Next.js application
 RUN npm run build
 
-# Stage 2: Create a lightweight production image with Nginx
-FROM nginx:stable-alpine
+# Export the static build if needed (only if `next export` is used)
+# RUN npm run export
 
-# Copy Nginx configuration
+# Production stage
+FROM nginx:stable-alpine AS production
 COPY nginx.conf /etc/nginx/nginx.conf
 
-# Remove default Nginx index page
-RUN rm -rf /usr/share/nginx/html/*
+# Copy the Next.js build output to the Nginx HTML directory
+# Use `.next` if not exporting or `out` if exporting
+COPY --from=builder /app/.next /usr/share/nginx/html
 
-# Copy the Next.js build output from the builder stage to Nginx
-COPY --from=builder /app/out /usr/share/nginx/html
+# If you used `next export`, use:
+# COPY --from=builder /app/out /usr/share/nginx/html
 
-# Expose port 80 for the container
 EXPOSE 80
-
-# Start Nginx when the container runs
 CMD ["nginx", "-g", "daemon off;"]
- 
