@@ -1,0 +1,31 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  group_by: ['alertname']
+  group_wait: 10s
+  group_interval: 5m
+  repeat_interval: 3h
+  receiver: 'default'
+
+receivers:
+  - name: 'default'
+    # Example: Send alerts to email
+    email_configs:
+      - to: 'sujalsharma151@gmail.com'
+        from: 'techsharma53@gmail.com'
+        smarthost: 'smtp.gmail.com:465'
+        auth_username: 'techsharma53@gmail.com'
+        auth_password: 'csvdmvyncmjovwwx'
+
+groups:
+  - name: container-alerts
+    rules:
+      - alert: HighCPUUsage
+        expr: 100 * (sum by (container) (rate(container_cpu_usage_seconds_total[1m]))) > 50
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU Usage Detected"
+          description: "CPU usage of container is above 50%. Value: {{ $value }}%"

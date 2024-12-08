@@ -1,0 +1,80 @@
+
+services:
+  # Frontend service
+  frontend:
+    image: frontend:latest
+    build:
+      context: ./frontend-url-shortner/frontend-url-shortner
+      dockerfile: Dockerfile
+    environment:
+      - NEXT_PUBLIC_API_URL=http://urlshortner.backend.dev:3000
+      - NEXT_PUBLIC_DOMAIN=http://frontend:3001
+    ports:
+      - "3001:3001"
+    depends_on:
+      - urlshortner.backend.dev
+    networks:
+      - app-network
+
+  # Node.js backend
+  urlshortner.backend.dev:
+    image: urlshortner.backend.dev:latest
+    build:
+      context: ./backend-nodejs
+      dockerfile: Dockerfile
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=postgres
+      - DB_USER=postgres
+      - DB_PASS=postgres
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_URL=http://redis
+      - JWT_SECRET=secret
+      - URL_SHORTNER_LINK=http://backend-python:5000
+      - FRONTEND_URL=http://frontend:3001
+      - ENV=dev
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend-python
+      - redis
+    networks:
+      - app-network
+
+  # Python backend
+  backend-python:
+    image: backend-python:latest
+    build:
+      context: ./backend-python
+      dockerfile: Dockerfile
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=postgres
+      - DB_USER=postgres
+      - DB_PASS=postgres
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_URL=http://redis
+      - PROMETHEUS_PORT=9090
+      - APP_PORT=5000
+    ports:
+      - "5000:5000"
+    depends_on:
+      - redis
+    networks:
+      - app-network
+
+  # Redis cache
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

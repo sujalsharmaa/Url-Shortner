@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-nodejs-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend-nodejs
+  template:
+    metadata:
+      labels:
+        app: backend-nodejs
+    spec:
+      containers:
+        - name: backend-nodejs-container
+          image: sujalsharma/urlshortner-backend-nodejs:v1
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: url-shortener-config
+            - secretRef:
+                name: url-shortener-secrets

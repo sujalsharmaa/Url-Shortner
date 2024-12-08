@@ -1,0 +1,30 @@
+version: 0.2
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR....
+      - aws --version
+      - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 590183798731.dkr.ecr.us-east-1.amazonaws.com
+      - echo Setting environment variables...
+      - export REPOSITORY_URI=590183798731.dkr.ecr.us-east-1.amazonaws.com/sujal/urlshortner
+      - export IMAGE_TAG=build-$(echo $CODEBUILD_BUILD_ID | awk -F":" '{print $2}')
+      - cd backend-nodejs
+  build:
+    commands:
+      - echo Build started on `date`
+      - echo Building the Docker image...
+      - docker build -t $REPOSITORY_URI:latest .
+      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo Pushing Docker images to ECR...
+      - docker push $REPOSITORY_URI:latest
+      - docker push $REPOSITORY_URI:$IMAGE_TAG
+      - echo Creating imagedefinitions.json for ECS deployment...
+      - DOCKER_CONTAINER_NAME=url-shortner-backend
+      - echo '[{"name":"'"$DOCKER_CONTAINER_NAME"'","imageUri":"'"$REPOSITORY_URI:$IMAGE_TAG"'"}]' > imagedefinitions.json
+      - echo imagedefinitions.json
+artifacts:
+  files:
+    - imagedefinitions.json
