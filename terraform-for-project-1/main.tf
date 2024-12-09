@@ -447,19 +447,6 @@ resource "aws_lb_target_group" "nodejs_service" {
 }
 
 
-resource "aws_lb_target_group_attachment" "python_service_attachment" {
-  target_group_arn = aws_lb_target_group.python_service.arn
-  target_id        = aws_launch_template.python_launch_template.id
-  port             = 80
-}
-
-resource "aws_lb_target_group_attachment" "nodejs_service_attachment" {
-  target_group_arn = aws_lb_target_group.nodejs_service.arn
-  target_id        = aws_launch_template.nodejs_launch_template.id
-  port             = 80
-}
-
-
 # CloudWatch Alarms and Scaling Policies for Node.js ASG
 resource "aws_cloudwatch_metric_alarm" "nodejs_cpu_high" {
   alarm_name          = "nodejs-high-cpu-utilization"

@@ -3,13 +3,13 @@ provider "aws" {
 }
 
 terraform {
-  backend "s3" {
-    bucket         = "url-prod-s3"
-    region         = "us-east-1"
-    key            = "mystate"
-   // dynamodb_table = "Lock-Files"
-    encrypt        = true
-  }
+  # backend "s3" {
+  #   bucket         = "url-prod-s3"
+  #   region         = "us-east-1"
+  #   key            = "mystate"
+  #  // dynamodb_table = "Lock-Files"
+  #   encrypt        = true
+  # }
   required_version = ">=1.0"
   required_providers {
     aws = {
