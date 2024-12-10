@@ -1,11 +1,11 @@
 global:
-  resolve_timeout: 5m
+  resolve_timeout: 10s
 
 route:
   group_by: ['alertname']
   group_wait: 10s
-  group_interval: 5m
-  repeat_interval: 3h
+  group_interval: 10s
+  repeat_interval: 10s
   receiver: 'default'
 
 receivers:
@@ -14,7 +14,7 @@ receivers:
     email_configs:
       - to: 'sujalsharma151@gmail.com'
         from: 'techsharma53@gmail.com'
-        smarthost: 'smtp.gmail.com:465'
+        smarthost: 'smtp.gmail.com:587'
         auth_username: 'techsharma53@gmail.com'
         auth_password: 'csvdmvyncmjovwwx'
 
@@ -23,7 +23,7 @@ groups:
     rules:
       - alert: HighCPUUsage
         expr: 100 * (sum by (container) (rate(container_cpu_usage_seconds_total[1m]))) > 5
-        for: 1m
+        for: 10s
         labels:
           severity: warning
         annotations:
