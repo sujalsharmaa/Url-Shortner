@@ -22,7 +22,7 @@ groups:
   - name: container-alerts
     rules:
       - alert: HighCPUUsage
-        expr: 100 * (sum by (container) (rate(container_cpu_usage_seconds_total[1m]))) > 5
+        expr: 100 *  (rate(process_cpu_system_seconds_total[1m])) > 5
         for: 10s
         labels:
           severity: warning
