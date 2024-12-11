@@ -47,7 +47,8 @@ class URL(Base):
 Base.metadata.create_all(bind=engine)
 
 # Prometheus metrics
-REQUEST_COUNT = Counter('request_count', 'App Request Count', ['endpoint'])
+REQUEST_COUNT = Counter('request_count', 'App Request Count', ['endpoint', 'method'])
+
 
 # Helper function to generate a short code
 def generate_short_code(length=6):
@@ -65,7 +66,7 @@ def handle_error(message, error=None, status=500):
 # Endpoint to create a shortened URL
 @app.route('/shorten', methods=['POST'])
 def shorten_url():
-    REQUEST_COUNT.labels('/shorten').inc()
+    REQUEST_COUNT.labels('/shorten',request.method).inc()
     data = request.get_json()
 
     # Validate incoming request data
@@ -105,7 +106,7 @@ def main():
 
 @app.route('/<short_code>', methods=['GET'])
 def redirect_url(short_code):
-    REQUEST_COUNT.labels('/<short_code>').inc()
+    REQUEST_COUNT.labels('/<short_code>',request.method).inc()
     session = SessionLocal()
 
     try:
@@ -132,7 +133,7 @@ def redirect_url(short_code):
 # Prometheus metrics endpoint
 @app.route('/metrics')
 def metrics():
-    REQUEST_COUNT.labels('/metrics').inc()
+    REQUEST_COUNT.labels('/metrics',request.method).inc()
     return generate_latest()
 
 # Run the Flask app
