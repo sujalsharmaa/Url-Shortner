@@ -1,11 +1,12 @@
 import string
 import random
-from flask import Flask, request, jsonify, redirect
+from flask import Flask, request, jsonify, redirect, Response
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 from db_config import Base, engine, SessionLocal
 from redis_client import redis_client
-from prometheus_client import Counter, generate_latest, start_http_server
+from prometheus_client import Counter, CollectorRegistry, generate_latest, CONTENT_TYPE_LATEST
+from prometheus_client.exposition import REGISTRY
 from dotenv import load_dotenv
 import logging
 import os
@@ -22,6 +23,9 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[logging.StreamHandler(), logging.FileHandler("url_shortener.log")]
 )
+
+# Prometheus metrics registry
+REQUEST_COUNT = Counter('request_count', 'App Request Count', ['endpoint', 'method'])
 
 # Define the User model
 class User(Base):
@@ -42,9 +46,6 @@ class URL(Base):
 
 # Initialize the database
 Base.metadata.create_all(bind=engine)
-
-# Prometheus metrics
-REQUEST_COUNT = Counter('request_count', 'App Request Count', ['endpoint', 'method'])
 
 # Helper function to generate a short code
 def generate_short_code(length=6):
@@ -127,13 +128,13 @@ def redirect_url(short_code):
         session.close()
 
 # Prometheus metrics endpoint
-@app.route('/metrics')
+@app.route('/metrics', methods=['GET'])
 def metrics():
     REQUEST_COUNT.labels('/metrics', request.method).inc()
-    return generate_latest()
+    # Serve Prometheus metrics on the '/metrics' route
+    return Response(generate_latest(REGISTRY), content_type=CONTENT_TYPE_LATEST)
 
 # Run the Flask app
 if __name__ == '__main__':
     app_port = int(os.getenv('APP_PORT', 5000))
-    start_http_server(5000)  # Expose Prometheus metrics at port 5000
     app.run(host='0.0.0.0', port=app_port)
