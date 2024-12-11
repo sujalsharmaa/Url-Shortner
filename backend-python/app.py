@@ -5,7 +5,7 @@ from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 from db_config import Base, engine, SessionLocal
 from redis_client import redis_client
-from prometheus_client import Counter, generate_latest
+from prometheus_client import Counter, generate_latest, start_http_server
 from dotenv import load_dotenv
 import logging
 import os
@@ -20,10 +20,7 @@ app = Flask(__name__)
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler("url_shortener.log"),
-    ]
+    handlers=[logging.StreamHandler(), logging.FileHandler("url_shortener.log")]
 )
 
 # Define the User model
@@ -49,7 +46,6 @@ Base.metadata.create_all(bind=engine)
 # Prometheus metrics
 REQUEST_COUNT = Counter('request_count', 'App Request Count', ['endpoint', 'method'])
 
-
 # Helper function to generate a short code
 def generate_short_code(length=6):
     characters = string.ascii_letters + string.digits
@@ -66,7 +62,7 @@ def handle_error(message, error=None, status=500):
 # Endpoint to create a shortened URL
 @app.route('/shorten', methods=['POST'])
 def shorten_url():
-    REQUEST_COUNT.labels('/shorten',request.method).inc()
+    REQUEST_COUNT.labels('/shorten', request.method).inc()
     data = request.get_json()
 
     # Validate incoming request data
@@ -81,7 +77,7 @@ def shorten_url():
     cached_url = redis_client.get(original_url)
     if cached_url:
         logging.info(f"Cache hit for URL: {original_url}")
-       # return jsonify({'short_url': cached_url.decode()}), 200
+        return jsonify({'short_url': cached_url.decode()}), 200
 
     # Generate a unique short URL
     short_code = generate_short_code()
@@ -100,13 +96,13 @@ def shorten_url():
         session.close()
  
 # Endpoint to redirect to the original URL
-@app.route('/',methods=['GET'])
+@app.route('/', methods=['GET'])
 def main():
     return jsonify({'message': 'hello python backend works'}), 200
 
 @app.route('/<short_code>', methods=['GET'])
 def redirect_url(short_code):
-    REQUEST_COUNT.labels('/<short_code>',request.method).inc()
+    REQUEST_COUNT.labels('/<short_code>', request.method).inc()
     session = SessionLocal()
 
     try:
@@ -133,10 +129,11 @@ def redirect_url(short_code):
 # Prometheus metrics endpoint
 @app.route('/metrics')
 def metrics():
-    REQUEST_COUNT.labels('/metrics',request.method).inc()
+    REQUEST_COUNT.labels('/metrics', request.method).inc()
     return generate_latest()
 
 # Run the Flask app
 if __name__ == '__main__':
     app_port = int(os.getenv('APP_PORT', 5000))
+    start_http_server(5000)  # Expose Prometheus metrics at port 5000
     app.run(host='0.0.0.0', port=app_port)
