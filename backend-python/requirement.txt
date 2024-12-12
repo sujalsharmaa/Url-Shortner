@@ -5,3 +5,4 @@ redis
 prometheus-client
 python-dotenv
 gunicorn
+datadog
