@@ -787,3 +787,223 @@ output "aws_cloudfront_distribution" {
   description = "The domain name of cloudfront"
   depends_on = [aws_cloudfront_distribution.cdn]
 }
+
+
+
+resource "aws_cloudwatch_dashboard" "infrastructure_dashboard" {
+  dashboard_name = "${local.env}-advanced-infrastructure-dashboard"
+
+  dashboard_body = jsonencode({
+    widgets = [
+      // EC2 Metrics - Node.js ASG
+      {
+        type   = "metric",
+        x      = 0,
+        y      = 0,
+        width  = 12,
+        height = 6,
+        properties = {
+          metrics = [
+            ["AWS/EC2",
+             "CPUUtilization",
+              "AutoScalingGroupName", 
+              "${aws_autoscaling_group.nodejs_asg.id}"],
+            [".", "NetworkIn", ".", "."],
+            [".", "NetworkOut", ".", "."],
+            [".", "DiskReadOps", ".", "."],
+            [".", "DiskWriteOps", ".", "."],
+            [".", "StatusCheckFailed", ".", "."]
+          ],
+          view    = "timeSeries",
+          stacked = false,
+          region  = "${local.region}",
+          title   = "Node.js Server - Detailed Metrics",
+          period  = 300
+        }
+      },
+      
+      // EC2 Metrics - Python ASG
+      {
+        type   = "metric",
+        x      = 12,
+        y      = 0,
+        width  = 12,
+        height = 6,
+        properties = {
+          metrics = [
+            ["AWS/EC2", "CPUUtilization", "AutoScalingGroupName", "${aws_autoscaling_group.python_asg.name}"],
+            [".", "NetworkIn", ".", "."],
+            [".", "NetworkOut", ".", "."],
+            [".", "DiskReadOps", ".", "."],
+            [".", "DiskWriteOps", ".", "."],
+            [".", "StatusCheckFailed", ".", "."]
+          ],
+          view    = "timeSeries",
+          stacked = false,
+          region  = "${local.region}",
+          title   = "Python Server - Detailed Metrics",
+          period  = 300
+        }
+      },
+      
+      // RDS Metrics
+      {
+        type   = "metric",
+        x      = 0,
+        y      = 6,
+        width  = 12,
+        height = 6,
+        properties = {
+          metrics = [
+            ["AWS/RDS", "CPUUtilization", "DBInstanceIdentifier", aws_db_instance.postgres.identifier],
+            [".", "DatabaseConnections", ".", "."],
+            [".", "FreeStorageSpace", ".", "."],
+            [".", "ReadIOPS", ".", "."],
+            [".", "WriteIOPS", ".", "."],
+            [".", "EngineUptime", ".", "."]
+          ],
+          view    = "timeSeries",
+          stacked = false,
+          region  = "${local.region}",
+          title   = "PostgreSQL RDS - Advanced Metrics",
+          period  = 300
+        }
+      },
+      
+      // Load Balancer Metrics - Node.js
+      {
+        type   = "metric",
+        x      = 12,
+        y      = 6,
+        width  = 12,
+        height = 6,
+        properties = {
+          metrics = [
+            ["AWS/ApplicationELB", "RequestCount", "LoadBalancer", aws_lb.nodejs-lb.arn],
+            [".", "TargetResponseTime", ".", "."],
+            [".", "HTTPCode_Target_4XX_Count", ".", "."],
+            [".", "HTTPCode_Target_5XX_Count", ".", "."],
+            [".", "HealthyHostCount", ".", "."],
+            [".", "UnHealthyHostCount", ".", "."],
+            [".", "ActiveConnectionCount", ".", "."],
+            [".", "ProcessedBytes", ".", "."]
+          ],
+          view    = "timeSeries",
+          stacked = false,
+          region  = "${local.region}",
+          title   = "Node.js Load Balancer - Detailed Metrics",
+          period  = 300
+        }
+      },
+      
+      // Load Balancer Metrics - Python
+      {
+        type   = "metric",
+        x      = 0,
+        y      = 12,
+        width  = 12,
+        height = 6,
+        properties = {
+          metrics = [
+            ["AWS/ApplicationELB", "RequestCount", "LoadBalancer", aws_lb.python-lb.arn],
+            [".", "TargetResponseTime", ".", "."],
+            [".", "HTTPCode_Target_4XX_Count", ".", "."],
+            [".", "HTTPCode_Target_5XX_Count", ".", "."],
+            [".", "HealthyHostCount", ".", "."],
+            [".", "UnHealthyHostCount", ".", "."],
+            [".", "ActiveConnectionCount", ".", "."],
+            [".", "ProcessedBytes", ".", "."]
+          ],
+          view    = "timeSeries",
+          stacked = false,
+          region  = "${local.region}",
+          title   = "Python Load Balancer - Detailed Metrics",
+          period  = 300
+        }
+      },
+      
+      // Auto Scaling Group Metrics
+      {
+        type   = "metric",
+        x      = 12,
+        y      = 12,
+        width  = 12,
+        height = 6,
+        properties = {
+          metrics = [
+            ["AWS/AutoScaling", "GroupTotalInstances", "AutoScalingGroupName", aws_autoscaling_group.nodejs_asg.name],
+            [".", "GroupInServiceInstances", ".", "."],
+            [".", "GroupPendingInstances", ".", "."],
+            [".", "GroupTerminatingInstances", ".", "."],
+            [".", "GroupTotalInstances", "AutoScalingGroupName", aws_autoscaling_group.python_asg.name],
+            [".", "GroupInServiceInstances", ".", "."],
+            [".", "GroupPendingInstances", ".", "."],
+            [".", "GroupTerminatingInstances", ".", "."]
+          ],
+          view    = "timeSeries",
+          stacked = false,
+          region  = "${local.region}",
+          title   = "Auto Scaling Group - Comprehensive Metrics",
+          period  = 300
+        }
+      },
+      
+      // CloudFront Metrics
+      {
+        type   = "metric",
+        x      = 0,
+        y      = 18,
+        width  = 12,
+        height = 6,
+        properties = {
+          metrics = [
+            ["AWS/CloudFront", "Requests", "DistributionId", aws_cloudfront_distribution.cdn.domain_name],
+            [".", "BytesDownloaded", ".", "."],
+            [".", "BytesUploaded", ".", "."],
+            [".", "TotalErrorRate", ".", "."],
+            [".", "4xxErrorRate", ".", "."],
+            [".", "5xxErrorRate", ".", "."]
+          ],
+          view    = "timeSeries",
+          stacked = false,
+          region  = "us-east-1",
+          title   = "CloudFront Distribution - Performance Metrics",
+          period  = 300
+        }
+      },
+      
+      // Network Metrics
+      {
+        type   = "metric",
+        x      = 12,
+        y      = 18,
+        width  = 12,
+        height = 6,
+        properties = {
+          metrics = [
+            ["AWS/VPC", "ActiveConnections", "VpcId", aws_vpc.main.id],
+            [".", "PacketsIn", ".", "."],
+            [".", "PacketsOut", ".", "."],
+            ["AWS/NATGateway", "BytesOut", "NatGatewayId", aws_nat_gateway.nat.id],
+            [".", "BytesIn", ".", "."],
+            [".", "PacketsOut", ".", "."]
+          ],
+          view    = "timeSeries",
+          stacked = false,
+          region  = "${local.region}",
+          title   = "Network & NAT Gateway Metrics",
+          period  = 300
+        }
+      }
+    ]
+  })
+}
+
+# Data source for current region
+data "aws_region" "current" {}
+
+# Output the dashboard name
+output "cloudwatch_dashboard_name" {
+  value       = aws_cloudwatch_dashboard.infrastructure_dashboard.dashboard_arn
+  description = "Name of the created advanced CloudWatch dashboard"
+}
