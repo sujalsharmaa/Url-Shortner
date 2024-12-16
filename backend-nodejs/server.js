@@ -53,7 +53,7 @@ app.use((req, res, next) => {
     next();
 });
 app.get("/",(req,res)=>{
-    res.send("hi node js backend works this is v2")
+    res.send("hi node js backend works this is v3")
 })
 
 // Route: Test database and Redis connections
