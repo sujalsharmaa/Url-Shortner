@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+terraform-for-project-1/.terraform/modules/modules.json
+terraform-for-project-1/.terraform/providers/registry.terraform.io/hashicorp/aws/5.49.0/
+terraform-for-project-1/terraform.tfstate.backup
+terraform-for-project-1/.terraform/modules/modules.json
 # C extensions
 *.so
 *.exe

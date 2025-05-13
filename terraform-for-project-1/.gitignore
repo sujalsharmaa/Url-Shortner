@@ -1,3 +1,7 @@
 *.exe
 *.lock.hcl
 *.tfstate
+terraform-for-project-1/.terraform/modules/modules.json
+terraform-for-project-1/main.tf
+terraform-for-project-1/module.tf
+terraform-for-project-1/terraform.tfstate.backup

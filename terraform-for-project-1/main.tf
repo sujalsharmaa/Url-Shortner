@@ -1,3 +1,5 @@
+#file2
+
 # VPC
 resource "aws_vpc" "main" {
   cidr_block           = "10.0.0.0/16"
@@ -610,104 +612,6 @@ resource "aws_lb_listener" "python-listener" {
   }
 }
 
-# CloudFront Distribution
-resource "aws_cloudfront_distribution" "cdn" {
-  origin {
-    domain_name = aws_lb.nodejs-lb.dns_name
-    origin_id   = "NodeJSALB"
-    custom_origin_config {
-      http_port              = 80
-      https_port             = 443
-      origin_protocol_policy = "http-only"
-      origin_ssl_protocols   = ["TLSv1.2"]
-
-      # Add custom headers to allow CORS from origin
-      origin_read_timeout    = 60
-      origin_keepalive_timeout = 60
-    }
-
-    # Add custom origin headers if needed
-    custom_header {
-      name  = "Access-Control-Allow-Origin"
-      value = "*"
-    }
-  }
-
-  enabled = true
-  
-  default_cache_behavior {
-    target_origin_id       = "NodeJSALB"
-    viewer_protocol_policy = "redirect-to-https"
-    
-    # Allow all HTTP methods
-    allowed_methods  = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
-    cached_methods   = ["GET", "HEAD", "OPTIONS"]
-    
-    # Min TTL of 0 to ensure OPTIONS requests aren't cached too long
-    min_ttl          = 0
-    default_ttl      = 3600
-    max_ttl          = 86400
-    
-    forwarded_values {
-      query_string = true
-      headers      = ["Origin", "Access-Control-Request-Headers", "Access-Control-Request-Method"]
-      
-      cookies {
-        forward = "none"
-      }
-    }
-
-    # Add response headers for CORS
-    response_headers_policy_id = aws_cloudfront_response_headers_policy.cors_policy.id
-  }
-
-  restrictions {
-    geo_restriction {
-      restriction_type = "none"
-    }
-  }
-
-  viewer_certificate {
-    cloudfront_default_certificate = true
-  }
-
-  tags = {
-    Name        = "cdn-distribution"
-    Environment = local.env
-  }
-}
-
-# Create a response headers policy for CORS
-resource "aws_cloudfront_response_headers_policy" "cors_policy" {
-  name    = "cors-policy"
-  comment = "CORS policy for CloudFront distribution"
-
-  cors_config {
-    access_control_allow_credentials = false
-    
-    access_control_allow_headers {
-      items = ["*"]
-    }
-    
-    access_control_allow_methods {
-      items = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
-    }
-    
-    access_control_allow_origins {
-      items = ["*"]
-    }
-    
-    origin_override = true
-  }
-
-  security_headers_config {
-    strict_transport_security {
-      access_control_max_age_sec = 31536000
-      include_subdomains        = true
-      override                  = true
-    }
-  }
-}
 
 resource "aws_route53_zone" "backend_postgres" {
   name          = "backend.postgres.com"
@@ -778,14 +682,6 @@ resource "aws_route53_record" "backend_redis_record" {
   type    = "A"
   ttl     = 300
   records = [aws_instance.monitoring.public_ip]
-}
-
-
-
-output "aws_cloudfront_distribution" {
-  value = "http://${aws_cloudfront_distribution.cdn.domain_name}"
-  description = "The domain name of cloudfront"
-  depends_on = [aws_cloudfront_distribution.cdn]
 }
 
 
@@ -948,29 +844,6 @@ resource "aws_cloudwatch_dashboard" "infrastructure_dashboard" {
         }
       },
       
-      // CloudFront Metrics
-      {
-        type   = "metric",
-        x      = 0,
-        y      = 18,
-        width  = 12,
-        height = 6,
-        properties = {
-          metrics = [
-            ["AWS/CloudFront", "Requests", "DistributionId", aws_cloudfront_distribution.cdn.domain_name],
-            [".", "BytesDownloaded", ".", "."],
-            [".", "BytesUploaded", ".", "."],
-            [".", "TotalErrorRate", ".", "."],
-            [".", "4xxErrorRate", ".", "."],
-            [".", "5xxErrorRate", ".", "."]
-          ],
-          view    = "timeSeries",
-          stacked = false,
-          region  = "us-east-1",
-          title   = "CloudFront Distribution - Performance Metrics",
-          period  = 300
-        }
-      },
       
       // Network Metrics
       {
@@ -1006,4 +879,46 @@ data "aws_region" "current" {}
 output "cloudwatch_dashboard_name" {
   value       = aws_cloudwatch_dashboard.infrastructure_dashboard.dashboard_arn
   description = "Name of the created advanced CloudWatch dashboard"
+}
+
+
+# 1. Create HTTP API Gateway
+resource "aws_apigatewayv2_api" "http_api" {
+  name          = "http-api-gateway"
+  protocol_type = "HTTP"
+  cors_configuration {
+    allow_credentials = true
+    allow_headers = [ "authorization","Content-Type" ]
+    max_age = 300
+    allow_methods = [ "PUT","GET","POST","DELETE","OPTIONS","HEAD","PATCH" ]
+    allow_origins = [ "https://www.sujalsharmaprojects.online","https://sujalsharmaprojects.online" ]
+  }
+}
+
+# 2. Create Integration with Load Balancer
+resource "aws_apigatewayv2_integration" "http_integration" {
+  api_id           = aws_apigatewayv2_api.http_api.id
+  integration_type = "HTTP_PROXY"
+  integration_method = "ANY"
+  integration_uri   = "http://${aws_lb.nodejs-lb.dns_name}/{proxy}"  # Replace with your ALB URL
+  payload_format_version = "1.0"
+}
+
+# 3. Create Route with `{proxy+}` to allow dynamic routing
+resource "aws_apigatewayv2_route" "proxy_route" {
+  api_id    = aws_apigatewayv2_api.http_api.id
+  route_key = "ANY /{proxy+}"
+  target    = "integrations/${aws_apigatewayv2_integration.http_integration.id}"
+}
+
+# 4. Create API Deployment
+resource "aws_apigatewayv2_stage" "http_stage" {
+  api_id      = aws_apigatewayv2_api.http_api.id
+  name        = "dev"
+  auto_deploy = true  # Automatically deploy new changes
+}
+
+output "api_gateway_backend_url" {
+  value = "${aws_apigatewayv2_api.http_api.api_endpoint}/${aws_apigatewayv2_stage.http_stage.name}"
+  depends_on = [ aws_apigatewayv2_api.http_api ]
 }
