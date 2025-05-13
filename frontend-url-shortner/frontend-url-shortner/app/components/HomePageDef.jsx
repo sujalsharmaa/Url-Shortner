@@ -7,7 +7,7 @@ const HomePage = () => {
   return (
     <div className="w-full min-h-screen flex justify-center items-center bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 animate-gradient-x">
       <div className="text-center p-8 backdrop-blur-sm bg-white/20 rounded-xl shadow-lg">
-        <h1 className="text-8xl font-extrabold m-2 text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-pink-600 animate-pulse">
+        <h1 className="text-8xl font-extrabold m-2 text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-pink-600">
           Backend will be up on Demand. Currently I cannot AFFORD to run kubernetes Cluster 24/7
           Please contact me on sujalsharma151@gmail.com for any Query.
         </h1>
